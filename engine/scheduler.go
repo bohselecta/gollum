@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -181,8 +182,18 @@ func (s *Scheduler) tick() {
 			if rs.kv == nil {
 				rs.kv = s.pgr.Allocate(2048)
 			}
+			// Store all possible prefixes for LPM
 			if rs.kv != nil {
+				// Store the full prompt
 				s.pfx.Set(rs.req.Model, rs.req.Prompt, KVRef{BlockID: rs.kv.ID, Tokens: rs.generated})
+				
+				// Store all tokenized prefixes for LPM
+				toks := strings.Fields(rs.req.Prompt)
+				for n := 1; n <= len(toks); n++ {
+					prefix := strings.Join(toks[:n], " ")
+					s.pfx.Set(rs.req.Model, prefix, KVRef{BlockID: rs.kv.ID, Tokens: rs.generated})
+				}
+				
 				s.pgr.Unpin(rs.kv) // release pin; will stay hot in LRU
 				metrics.KVUnpin.Inc()
 			}

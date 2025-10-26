@@ -19,10 +19,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	
+
 	// Register metrics
 	metrics.MustRegister()
-	
+
 	engine := impl.NewEngine()
 	r := gin.Default()
 	obs.Install(r)

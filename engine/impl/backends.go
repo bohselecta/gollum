@@ -57,10 +57,10 @@ func (m *stubOps) PredictNext(ctxs []engine.DecodeCtx) []string {
 		}
 		// Append token K/V (demo: K=V=Q) - stub implementation
 		// In a real implementation, this would call metal.KVAppend(h, q, q, Kdim)
-		
+
 		// Simple attention: just use the query vector for now
 		copy(ctxVec[i*Kdim:(i+1)*Kdim], q)
-		
+
 		// Store handle into the KV block if available (idempotent). We expose a tiny hook:
 		// In this minimal patch, scheduler carries KVHandle via DecodeCtx and expects us to reuse 'h' next call.
 		ctxs[i].KVHandle = h
