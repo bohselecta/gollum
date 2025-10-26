@@ -148,7 +148,7 @@ func readTensorData(r io.Reader, t *Tensor) error {
 	// Read data based on type
 	// Note: Simplified implementation - real GGUF has tensors at specific offsets
 	// For now, read directly (actual files need seek to offset)
-	
+
 	switch t.Type {
 	case 0: // F32
 		t.Data = make([]float32, t.Size)
@@ -175,7 +175,7 @@ func readTensorData(r io.Reader, t *Tensor) error {
 		// Skip the tensor data
 		return nil
 	}
-	
+
 	return nil
 }
 
@@ -185,7 +185,7 @@ func readQuantizedTensor(r io.Reader, t *Tensor) error {
 	t.Data = make([]float32, t.Size)
 	// Q4_0 uses 32 values per block (18 bytes: 2 byte scale + 16 bytes data)
 	blocks := t.Size / 32
-	
+
 	for i := uint64(0); i < blocks; i++ {
 		// Read scale
 		var scale float32

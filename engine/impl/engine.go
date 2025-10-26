@@ -13,11 +13,14 @@ import (
 type goEngine struct {
 	scheduler *engine.Scheduler
 	models    map[string]*gguf.Model // model name -> loaded model
+	backend   engine.KernelOps        // the inference backend
 }
 
 func NewEngine() engine.Engine {
 	// Find and load models
 	models := make(map[string]*gguf.Model)
+	var backend engine.KernelOps
+	
 	modelFiles, err := gguf.FindModels(".")
 	if err != nil {
 		log.Printf("Warning: failed to find models: %v", err)
@@ -40,15 +43,30 @@ func NewEngine() engine.Engine {
 
 	if len(models) == 0 {
 		log.Printf("No GGUF models found, using toy backend")
+		backend = NewMetalOps()
+	} else {
+		// Use the first model for now
+		var model *gguf.Model
+		for _, m := range models {
+			model = m
+			break
+		}
+		ggufBackend, err := NewGGUFBackend(model)
+		if err != nil {
+			log.Printf("Failed to create GGUF backend: %v", err)
+			backend = NewMetalOps()
+		} else {
+			backend = ggufBackend
+		}
 	}
 
-	backend := NewMetalOps()
 	scheduler := engine.NewScheduler(backend)
 	// Start the scheduler in the background
 	go scheduler.Run(context.Background())
 	return &goEngine{
 		scheduler: scheduler,
 		models:    models,
+		backend:   backend,
 	}
 }
 
