@@ -51,14 +51,14 @@ const landingHTML = `<!doctype html>
     }
     
     .logo {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border-radius: 8px;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     
     .wordmark {
-      height: 32px;
+      height: 24px;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     
@@ -67,9 +67,9 @@ const landingHTML = `<!doctype html>
     }
     
     .header p {
-      font-size: 14px;
+      font-size: 12px;
       color: var(--muted);
-      margin-top: 4px;
+      margin-top: 2px;
     }
     
     .messages {
