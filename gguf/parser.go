@@ -11,29 +11,29 @@ import (
 // Based on: https://github.com/ggerganov/llama.cpp/blob/master/gguf-spec.md
 
 const (
-	GGUFMagic    = 0x46554747 // "GGUF"
-	GGUFCows     = 0x666F // "fo"
-	GGUFVersion  = 3
+	GGUFMagic   = 0x46554747 // "GGUF"
+	GGUFCows    = 0x666F     // "fo"
+	GGUFVersion = 3
 )
 
 type Tensor struct {
-	Name  string
-	Dims  []uint32
-	Type  uint32
-	Data  []float32
-	Size  uint64
+	Name string
+	Dims []uint32
+	Type uint32
+	Data []float32
+	Size uint64
 }
 
 type GGUFHeader struct {
-	Magic      uint32
-	Version    uint32
+	Magic       uint32
+	Version     uint32
 	TensorCount uint64
 	KVCount     uint64
 }
 
 type GGUF struct {
-	Header  *GGUFHeader
-	Tensors map[string]*Tensor
+	Header   *GGUFHeader
+	Tensors  map[string]*Tensor
 	Metadata map[string]interface{}
 }
 
@@ -43,7 +43,7 @@ func Parse(r io.ReadSeeker) (*GGUF, error) {
 		Tensors:  make(map[string]*Tensor),
 		Metadata: make(map[string]interface{}),
 	}
-	
+
 	// Read magic bytes
 	var magic uint32
 	if err := binary.Read(r, binary.LittleEndian, &magic); err != nil {
@@ -52,13 +52,13 @@ func Parse(r io.ReadSeeker) (*GGUF, error) {
 	if magic != GGUFMagic {
 		return nil, fmt.Errorf("invalid GGUF magic: 0x%08x", magic)
 	}
-	
+
 	// Read version
 	var version uint32
 	if err := binary.Read(r, binary.LittleEndian, &version); err != nil {
 		return nil, fmt.Errorf("failed to read version: %w", err)
 	}
-	
+
 	// Read tensor and KV counts
 	var tensorCount, kvCount uint64
 	if err := binary.Read(r, binary.LittleEndian, &tensorCount); err != nil {
@@ -67,17 +67,17 @@ func Parse(r io.ReadSeeker) (*GGUF, error) {
 	if err := binary.Read(r, binary.LittleEndian, &kvCount); err != nil {
 		return nil, fmt.Errorf("failed to read KV count: %w", err)
 	}
-	
+
 	g.Header = &GGUFHeader{
-		Magic:      magic,
-		Version:    version,
+		Magic:       magic,
+		Version:     version,
 		TensorCount: tensorCount,
 		KVCount:     kvCount,
 	}
-	
+
 	// For now, skip metadata parsing and jump to tensors
 	// TODO: Parse KV metadata
-	
+
 	// Parse tensors
 	for i := uint64(0); i < tensorCount; i++ {
 		tensor, err := parseTensor(r)
@@ -86,66 +86,66 @@ func Parse(r io.ReadSeeker) (*GGUF, error) {
 		}
 		g.Tensors[tensor.Name] = tensor
 	}
-	
+
 	return g, nil
 }
 
 func parseTensor(r io.Reader) (*Tensor, error) {
 	t := &Tensor{}
-	
+
 	// Read name length
 	var nameLen uint64
 	if err := binary.Read(r, binary.LittleEndian, &nameLen); err != nil {
 		return nil, err
 	}
-	
+
 	// Read name
 	nameBytes := make([]byte, nameLen)
 	if _, err := io.ReadFull(r, nameBytes); err != nil {
 		return nil, err
 	}
 	t.Name = string(nameBytes)
-	
+
 	// Read number of dimensions
 	var nDims uint32
 	if err := binary.Read(r, binary.LittleEndian, &nDims); err != nil {
 		return nil, err
 	}
-	
+
 	// Read dimensions
 	t.Dims = make([]uint32, nDims)
 	if err := binary.Read(r, binary.LittleEndian, &t.Dims); err != nil {
 		return nil, err
 	}
-	
+
 	// Read type
 	if err := binary.Read(r, binary.LittleEndian, &t.Type); err != nil {
 		return nil, err
 	}
-	
+
 	// Read offset (skip for now, we'll read data directly)
 	var offset uint64
 	if err := binary.Read(r, binary.LittleEndian, &offset); err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate size
 	t.Size = 1
 	for _, dim := range t.Dims {
 		t.Size *= uint64(dim)
 	}
-	
+
 	// Read data based on type
 	if err := readTensorData(r, t); err != nil {
 		return nil, err
 	}
-	
+
 	return t, nil
 }
 
 func readTensorData(r io.Reader, t *Tensor) error {
 	t.Data = make([]float32, t.Size)
-	
+
 	switch t.Type {
 	case 0: // F32
 		for i := uint64(0); i < t.Size; i++ {
@@ -166,7 +166,7 @@ func readTensorData(r io.Reader, t *Tensor) error {
 	default:
 		return fmt.Errorf("unsupported tensor type: %d", t.Type)
 	}
-	
+
 	return nil
 }
 
@@ -175,16 +175,15 @@ func float16ToFloat32(f16 uint16) float32 {
 	sign := float32((f16 >> 15) & 0x1)
 	exp := int((f16 >> 10) & 0x1f)
 	mantissa := float32(f16 & 0x3ff)
-	
+
 	if exp == 0 {
 		return sign * mantissa * float32(math.Pow(2, -24))
 	} else if exp == 31 {
-		return (sign * 2 - 1) * float32(math.Inf(1))
+		return (sign*2 - 1) * float32(math.Inf(1))
 	}
-	
+
 	expValue := float32(math.Pow(2, float64(exp-15)))
 	mantissaValue := 1.0 + mantissa/1024.0
-	
+
 	return sign * expValue * mantissaValue
 }
-

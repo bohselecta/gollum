@@ -33,22 +33,22 @@ func NewEngine() engine.Engine {
 			modelName := filepath.Base(path)
 			modelName = modelName[:len(modelName)-5] // remove .gguf
 			models[modelName] = model
-			log.Printf("Loaded model: %s (layers=%d, embed=%d, vocab=%d)", 
+			log.Printf("Loaded model: %s (layers=%d, embed=%d, vocab=%d)",
 				modelName, model.NumLayers, model.EmbedDim, model.VocabSize)
 		}
 	}
-	
+
 	if len(models) == 0 {
 		log.Printf("No GGUF models found, using toy backend")
 	}
-	
+
 	backend := NewMetalOps()
 	scheduler := engine.NewScheduler(backend)
 	// Start the scheduler in the background
 	go scheduler.Run(context.Background())
 	return &goEngine{
 		scheduler: scheduler,
-		models:   models,
+		models:    models,
 	}
 }
 
