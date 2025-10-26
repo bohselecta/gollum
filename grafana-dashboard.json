@@ -1,0 +1,122 @@
+{
+  "title": "GoLLuM • Inference & Caching",
+  "uid": "gollum-main",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Requests / 5m",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "sum(rate(gollum_decode_steps_total[5m]))",
+          "legendFormat": "decode steps / s"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Prefix Cache Hit Rate / 5m",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+      "targets": [
+        {
+          "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prefix\",hit_kind=\"hit\"}[5m])) / sum(rate(gollum_cache_events_total{cache_type=\"prefix\"}[5m]))",
+          "legendFormat": "hit rate"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Prompt Cache Hit Rate / 5m",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+      "targets": [
+        {
+          "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prompt\",hit_kind=\"hit\"}[5m])) / sum(rate(gollum_cache_events_total{cache_type=\"prompt\"}[5m]))",
+          "legendFormat": "hit rate"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TTFT p50 / p95 (ms)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(gollum_ttft_ms_bucket[5m])) by (le, model))",
+          "legendFormat": "p50 {{model}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(gollum_ttft_ms_bucket[5m])) by (le, model))",
+          "legendFormat": "p95 {{model}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TPOT p50 / p95 (ms)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(gollum_tpot_ms_bucket[5m])) by (le, model))",
+          "legendFormat": "p50 {{model}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(gollum_tpot_ms_bucket[5m])) by (le, model))",
+          "legendFormat": "p95 {{model}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Batch Size (by model)",
+      "gridPos": { "x": 0, "y": 11, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(gollum_batch_size_bucket[5m])) by (le, model))",
+          "legendFormat": "p50 {{model}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(gollum_batch_size_bucket[5m])) by (le, model))",
+          "legendFormat": "p95 {{model}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "KV Pager Events (alloc/pin/unpin/evict)",
+      "gridPos": { "x": 12, "y": 11, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(gollum_kv_events_total{action=\"alloc\"}[5m])) by (model)", "legendFormat": "alloc {{model}}" },
+        { "expr": "sum(rate(gollum_kv_events_total{action=\"pin\"}[5m])) by (model)",   "legendFormat": "pin {{model}}" },
+        { "expr": "sum(rate(gollum_kv_events_total{action=\"unpin\"}[5m])) by (model)", "legendFormat": "unpin {{model}}" },
+        { "expr": "sum(rate(gollum_kv_events_total{action=\"evict\"}[5m])) by (model)", "legendFormat": "evict {{model}}" }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Cache Events (5m, by model and type)",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prefix\",hit_kind=\"hit\"}[5m])) by (model)", "legendFormat": "prefix hit {{model}}" },
+        { "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prefix\",hit_kind=\"miss\"}[5m])) by (model)", "legendFormat": "prefix miss {{model}}" },
+        { "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prompt\",hit_kind=\"hit\"}[5m])) by (model)", "legendFormat": "prompt hit {{model}}" },
+        { "expr": "sum(rate(gollum_cache_events_total{cache_type=\"prompt\",hit_kind=\"miss\"}[5m])) by (model)", "legendFormat": "prompt miss {{model}}" }
+      ]
+    }
+  ],
+  "templating": { "list": [] }
+}
