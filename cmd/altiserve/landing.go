@@ -57,9 +57,13 @@ const landingHTML = `<!doctype html>
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     
-    .header h1 {
-      font-size: 24px;
-      color: var(--text);
+    .wordmark {
+      height: 32px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    
+    .header-info {
+      flex: 1;
     }
     
     .header p {
@@ -211,9 +215,9 @@ const landingHTML = `<!doctype html>
 <body>
   <div id="app">
     <div class="header">
-      <img src="/assets/gollum-logo.svg" alt="GoLLuM" class="logo">
-      <div>
-        <h1>GoLLuM</h1>
+      <img src="/assets/gollum-logo.svg" alt="" class="logo">
+      <img src="/assets/word-mark-gollum-text.svg" alt="GoLLuM" class="wordmark">
+      <div class="header-info">
         <p>Go-first LLM inference runtime with advanced caching</p>
       </div>
     </div>
