@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/haydenlabs/gollum/engine"
-	"github.com/haydenlabs/gollum/kernels/toy"
 )
 
 type goEngine struct {
@@ -12,7 +11,7 @@ type goEngine struct {
 }
 
 func NewEngine() engine.Engine {
-	backend := toy.NewToyBackend()
+	backend := NewMetalOps()
 	scheduler := engine.NewScheduler(backend)
 	// Start the scheduler in the background
 	go scheduler.Run(context.Background())

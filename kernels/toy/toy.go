@@ -24,10 +24,10 @@ func (t *ToyBackend) Decode(step *engine.Step) (int, error) {
 	return step.BatchSize, nil
 }
 
-func (t *ToyBackend) PredictNext(prompts []string) []string {
-	results := make([]string, len(prompts))
-	for i, prompt := range prompts {
-		results[i] = t.NextToken(prompt)
+func (t *ToyBackend) PredictNext(ctxs []engine.DecodeCtx) []string {
+	results := make([]string, len(ctxs))
+	for i, ctx := range ctxs {
+		results[i] = t.NextToken(ctx.Prompt)
 	}
 	return results
 }

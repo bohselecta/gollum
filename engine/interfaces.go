@@ -20,6 +20,12 @@ type GenRequest struct {
 	Priority    int
 }
 
+// DecodeCtx carries per-request state into the kernel, including bound KV handle.
+type DecodeCtx struct {
+	Prompt   string
+	KVHandle int
+}
+
 type Engine interface {
 	Generate(ctx context.Context, req *GenRequest) (<-chan Token, *Trace, error)
 	Embeddings(ctx context.Context, input string) ([]float32, error)
@@ -28,7 +34,7 @@ type Engine interface {
 type KernelOps interface {
 	Prefill(batch *Batch) error
 	Decode(step *Step) (int, error)
-	PredictNext(prompts []string) []string
+	PredictNext(ctxs []DecodeCtx) []string
 }
 
 type Batch struct {

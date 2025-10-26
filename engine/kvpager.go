@@ -3,9 +3,10 @@ package engine
 import "container/list"
 
 type KVBlock struct {
-	ID     int
-	Tokens int
-	Pinned bool
+	ID       int
+	Tokens   int
+	Pinned   bool
+	KVHandle int // Bound metal KV handle for this block (0 = unbound). One handle per block.
 }
 
 type KVPager struct {

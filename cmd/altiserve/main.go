@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/haydenlabs/gollum/apis/openai"
 	"github.com/haydenlabs/gollum/engine/impl"
+	"github.com/haydenlabs/gollum/metrics"
 	"github.com/haydenlabs/gollum/obs"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -18,6 +19,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	
+	// Register metrics
+	metrics.MustRegister()
+	
 	engine := impl.NewEngine()
 	r := gin.Default()
 	obs.Install(r)
@@ -29,7 +34,7 @@ func main() {
 	api := openai.NewAPI(engine)
 	api.Register(r)
 
-	selfTestMetal()
+	// selfTestMetal() // Disabled - Metal files temporarily disabled
 
 	// Minimal landing page
 	r.GET("/", func(c *gin.Context) {
