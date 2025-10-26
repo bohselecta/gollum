@@ -37,7 +37,7 @@ func (s *Scheduler) Enqueue(ctx context.Context, r *GenRequest) (<-chan Token, *
 	rs := &reqState{ctx: ctx, req: r, ch: make(chan Token, 32), trace: &Trace{}, created: time.Now()}
 	// Cache fast-path: exact prompt/model/temp/maxTokens
 	if toks, ok := s.pc.Get(r.Prompt, r.Model, r.Temperature, r.MaxTokens); ok && len(toks) >= r.MaxTokens {
-		metrics.PromptCacheHit.Inc()
+		metrics.CacheEvents.WithLabelValues("prompt", "hit", r.Model).Inc()
 		go func() {
 			defer close(rs.ch)
 			for i := 0; i < r.MaxTokens; i++ {
@@ -50,10 +50,12 @@ func (s *Scheduler) Enqueue(ctx context.Context, r *GenRequest) (<-chan Token, *
 			}
 			rs.trace.TTFTMs = 1
 			rs.trace.TPOTMs = 1
+			metrics.TTFTMs.WithLabelValues(r.Model).Observe(float64(rs.trace.TTFTMs))
+			metrics.TPOTMs.WithLabelValues(r.Model).Observe(float64(rs.trace.TPOTMs))
 		}()
 		return rs.ch, rs.trace
 	}
-	metrics.PromptCacheMiss.Inc()
+	metrics.CacheEvents.WithLabelValues("prompt", "miss", r.Model).Inc()
 	s.mu.Lock()
 	s.incoming = append(s.incoming, rs)
 	s.mu.Unlock()
@@ -102,19 +104,19 @@ func (s *Scheduler) tick() {
 			if ref, _, ok := s.pfx.GetLongest(rs.req.Model, rs.req.Prompt); ok {
 				if blk := s.pgr.ByID(ref.BlockID); blk != nil {
 					s.pgr.Pin(blk)
-					metrics.KVPin.Inc()
 					rs.kv = blk
-					metrics.PrefixHit.Inc()
+					metrics.CacheEvents.WithLabelValues("prefix", "hit", rs.req.Model).Inc()
+					metrics.KVEvents.WithLabelValues("pin", rs.req.Model).Inc()
 				} else {
-					metrics.PrefixMiss.Inc()
+					metrics.CacheEvents.WithLabelValues("prefix", "miss", rs.req.Model).Inc()
 				}
 			} else {
-				metrics.PrefixMiss.Inc()
+				metrics.CacheEvents.WithLabelValues("prefix", "miss", rs.req.Model).Inc()
 			}
 			if rs.kv == nil {
 				if blk := s.pgr.Allocate(2048); blk != nil {
 					rs.kv = blk
-					metrics.KVAlloc.Inc()
+					metrics.KVEvents.WithLabelValues("alloc", rs.req.Model).Inc()
 				}
 			}
 			b.Prompts = append(b.Prompts, rs.req.Prompt)
@@ -140,8 +142,13 @@ func (s *Scheduler) tick() {
 	if produced <= 0 {
 		produced = len(active)
 	}
-	metrics.BatchSize.Observe(float64(len(active)))
-	metrics.DecodeSteps.Inc()
+	if len(active) > 0 {
+		// use the first request's model as batch label (batches are single-model in many setups;
+		// if you support mixed-model batches, you can iterate per-model)
+		modelLabel := active[0].req.Model
+		metrics.BatchSize.WithLabelValues(modelLabel).Observe(float64(len(active)))
+		metrics.DecodeSteps.WithLabelValues(modelLabel).Inc()
+	}
 	// Build decode contexts (prompt + bound KV handle id)
 	ctxs := make([]DecodeCtx, len(active))
 	for i, rs := range active {
@@ -175,10 +182,10 @@ func (s *Scheduler) tick() {
 		if rs.req.MaxTokens > 0 && rs.generated >= rs.req.MaxTokens {
 			close(rs.ch)
 			rs.trace.TPOTMs = time.Since(rs.created).Milliseconds()
-			metrics.TTFTMs.Observe(float64(rs.trace.TTFTMs))
-			metrics.TPOTMs.Observe(float64(rs.trace.TPOTMs))
+			metrics.TTFTMs.WithLabelValues(rs.req.Model).Observe(float64(rs.trace.TTFTMs))
+			metrics.TPOTMs.WithLabelValues(rs.req.Model).Observe(float64(rs.trace.TPOTMs))
+
 			s.pc.Put(rs.req.Prompt, rs.req.Model, rs.req.Temperature, rs.req.MaxTokens, replayTokens(rs.req.Prompt))
-			// Register/update prefix -> KVRef
 			if rs.kv == nil {
 				rs.kv = s.pgr.Allocate(2048)
 			}
@@ -186,16 +193,16 @@ func (s *Scheduler) tick() {
 			if rs.kv != nil {
 				// Store the full prompt
 				s.pfx.Set(rs.req.Model, rs.req.Prompt, KVRef{BlockID: rs.kv.ID, Tokens: rs.generated})
-				
+
 				// Store all tokenized prefixes for LPM
 				toks := strings.Fields(rs.req.Prompt)
 				for n := 1; n <= len(toks); n++ {
 					prefix := strings.Join(toks[:n], " ")
 					s.pfx.Set(rs.req.Model, prefix, KVRef{BlockID: rs.kv.ID, Tokens: rs.generated})
 				}
-				
+
 				s.pgr.Unpin(rs.kv) // release pin; will stay hot in LRU
-				metrics.KVUnpin.Inc()
+				metrics.KVEvents.WithLabelValues("unpin", rs.req.Model).Inc()
 			}
 			continue
 		}
