@@ -54,6 +54,7 @@ const landingHTML = `<!doctype html>
       width: 48px;
       height: 48px;
       border-radius: 8px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     
     .header h1 {
@@ -210,7 +211,7 @@ const landingHTML = `<!doctype html>
 <body>
   <div id="app">
     <div class="header">
-      <img src="/assets/icons/gollum_icon_256.png" alt="GoLLuM" class="logo">
+      <img src="/assets/gollum-logo.svg" alt="GoLLuM" class="logo">
       <div>
         <h1>GoLLuM</h1>
         <p>Go-first LLM inference runtime with advanced caching</p>
