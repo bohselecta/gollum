@@ -6,7 +6,10 @@ import (
 	xx "github.com/cespare/xxhash/v2"
 )
 
-type KVRef struct{ BlockID int; Tokens int }
+type KVRef struct {
+	BlockID int
+	Tokens  int
+}
 
 type prefixKey struct {
 	Model string
@@ -14,9 +17,9 @@ type prefixKey struct {
 }
 
 type PrefixCache struct {
-	mu   sync.Mutex
-	m    map[prefixKey]KVRef
-	tok  Tokenizer
+	mu  sync.Mutex
+	m   map[prefixKey]KVRef
+	tok Tokenizer
 }
 
 func NewPrefixCache() *PrefixCache {
